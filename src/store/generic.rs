@@ -7,6 +7,8 @@
 use core::cmp::Eq;
 use core::hash::Hash;
 use hashbrown::HashMap;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use std::fmt::Display;
 use std::sync::{Arc, RwLock};
 use std::time::SystemTime;
@@ -87,6 +89,8 @@ pub trait StoreGenericPool<
 
         // Acquire access lock (in blocking write mode), and reference it in context
         // Notice: this prevents store to be acquired from any context
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[access_lock:{}] ->", lck_id);
         let _access = access_lock.write().unwrap();
 
         let mut removal_register: Vec<K> = Vec::new();
@@ -131,6 +135,8 @@ pub trait StoreGenericPool<
             removal_register.len(),
             pool.read().unwrap().len()
         );
+
+        error!("[access_lock:{}] <-", lck_id);
     }
 }
 
@@ -155,12 +161,18 @@ pub trait StoreGenericActionBuilder {
 
         // Acquire access lock (in blocking write mode), and reference it in context
         // Notice: this prevents store to be acquired from any context
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[access_lock:{}] ->", lck_id);
         let _access = access_lock.write().unwrap();
 
-        if let Some(bucket) = bucket {
+        let ret = if let Some(bucket) = bucket {
             Self::proceed_erase_bucket(collection_str, bucket.into())
         } else {
             Self::proceed_erase_collection(collection_str)
-        }
+        };
+
+        error!("[access_lock:{}] <-", lck_id);
+
+        ret
     }
 }

@@ -309,11 +309,14 @@ impl StoreKVBuilder {
             collection_hash
         );
 
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[STORE_POOL:{}] ->", lck_id);
         let mut store_pool_write = STORE_POOL.write().unwrap();
 
         let collection_target = StoreKVKey::from_atom(collection_hash);
 
         store_pool_write.remove(&collection_target);
+        error!("[STORE_POOL:{}] <-", lck_id);
     }
 
     fn path(collection_hash: StoreKVAtom) -> PathBuf {

@@ -188,12 +188,11 @@ impl StoreFSTPool {
         let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
         error!("[GRAPH_REBUILD_LOCK:{}] ->", lck_id);
         let _rebuild = GRAPH_REBUILD_LOCK.lock().unwrap();
-        error!("[GRAPH_REBUILD_LOCK:{}] <-", lck_id);
 
         // Exit trap: Register is empty? Abort there.
         if GRAPH_CONSOLIDATE.read().unwrap().is_empty() {
             info!("no fst store pool items to consolidate in register");
-
+            error!("[GRAPH_REBUILD_LOCK:{}] <-", lck_id);
             return;
         }
 
@@ -203,6 +202,7 @@ impl StoreFSTPool {
         {
             // Acquire access lock (in blocking write mode), and reference it in context
             // Notice: this prevents store to be acquired from any context
+            error!("[GRAPH_ACCESS_LOCK:{}] ->", lck_id);
             let _access = GRAPH_ACCESS_LOCK.write().unwrap();
 
             let graph_consolidate_read = GRAPH_CONSOLIDATE.read().unwrap();
@@ -232,12 +232,13 @@ impl StoreFSTPool {
                     }
                 }
             }
+            error!("[GRAPH_ACCESS_LOCK:{}] <-", lck_id);
         }
 
         // Exit trap: Nothing to consolidate yet? Abort there.
         if keys_consolidate.is_empty() {
             info!("no fst store pool items need to consolidate at the moment");
-
+            error!("[GRAPH_REBUILD_LOCK:{}] <-", lck_id);
             return;
         }
 
@@ -245,8 +246,10 @@ impl StoreFSTPool {
         {
             // Acquire access lock (in blocking write mode), and reference it in context
             // Notice: this prevents store to be acquired from any context
+            error!("[GRAPH_ACCESS_LOCK:{}] ->", lck_id);
             let _access = GRAPH_ACCESS_LOCK.write().unwrap();
 
+            error!("[GRAPH_CONSOLIDATE:{}] ->", lck_id);
             let mut graph_consolidate_write = GRAPH_CONSOLIDATE.write().unwrap();
 
             for key in &keys_consolidate {
@@ -254,6 +257,8 @@ impl StoreFSTPool {
 
                 debug!("fst key: {} cleared from consolidate register", key);
             }
+            error!("[GRAPH_CONSOLIDATE:{}] <-", lck_id);
+            error!("[GRAPH_ACCESS_LOCK:{}] <-", lck_id);
         }
 
         // Step 3: Consolidate FSTs, one-by-one (sequential locking; this avoids global locks)
@@ -266,6 +271,7 @@ impl StoreFSTPool {
                     //   trying to access the FST file as it gets processed. This also waits for \
                     //   current consumers to finish reading the FST, and prevents any new \
                     //   consumer from opening it while we are not done there.
+                    error!("[GRAPH_ACCESS_LOCK:{}] ->", lck_id);
                     let _access = GRAPH_ACCESS_LOCK.write().unwrap();
 
                     let do_close = if let Some(store) = GRAPH_POOL.read().unwrap().get(key) {
@@ -293,6 +299,7 @@ impl StoreFSTPool {
                     if do_close {
                         GRAPH_POOL.write().unwrap().remove(key);
                     }
+                    error!("[GRAPH_ACCESS_LOCK:{}] <-", lck_id);
                 }
 
                 // Give a bit of time to other threads before continuing (a consolidate operation \
@@ -309,6 +316,8 @@ impl StoreFSTPool {
             "done scanning for fst store pool items to consolidate (move: {}, push: {}, pop: {})",
             count_moved, count_pushed, count_popped
         );
+
+        error!("[GRAPH_REBUILD_LOCK:{}] <-", lck_id);
     }
 
     fn dump_action(
@@ -717,8 +726,13 @@ impl StoreFSTBuilder {
 
         let bucket_target = StoreFSTKey::from_atom(collection_hash, bucket_hash);
 
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[GRAPH_POOL:{}] ->", lck_id);
         GRAPH_POOL.write().unwrap().remove(&bucket_target);
+        error!("[GRAPH_POOL:{}] <-", lck_id);
+        error!("[GRAPH_CONSOLIDATE:{}] ->", lck_id);
         GRAPH_CONSOLIDATE.write().unwrap().remove(&bucket_target);
+        error!("[GRAPH_CONSOLIDATE:{}] <-", lck_id);
     }
 
     fn path(
@@ -842,7 +856,10 @@ impl StoreFST {
         // Check if not already scheduled
         if !GRAPH_CONSOLIDATE.read().unwrap().contains(&self.target) {
             // Schedule target for next consolidation tick (ie. collection + bucket tuple)
+            let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+            error!("[GRAPH_CONSOLIDATE:{}] ->", lck_id);
             GRAPH_CONSOLIDATE.write().unwrap().insert(self.target);
+            error!("[GRAPH_CONSOLIDATE:{}] <-", lck_id);
 
             // Bump 'last consolidated' time, effectively de-bouncing consolidation to a fixed \
             //   and predictible tick time in the future.
@@ -912,6 +929,10 @@ impl StoreGenericActionBuilder for StoreFSTActionBuilder {
                 collection_str
             );
 
+            let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+            error!("[GRAPH_POOL:{}] ->", lck_id);
+            error!("[GRAPH_CONSOLIDATE:{}] ->", lck_id);
+
             let (mut graph_pool_write, mut graph_consolidate_write) = (
                 GRAPH_POOL.write().unwrap(),
                 GRAPH_CONSOLIDATE.write().unwrap(),
@@ -928,6 +949,9 @@ impl StoreGenericActionBuilder for StoreFSTActionBuilder {
                 graph_pool_write.remove(&bucket_target);
                 graph_consolidate_write.remove(&bucket_target);
             }
+
+            error!("[GRAPH_CONSOLIDATE:{}] <-", lck_id);
+            error!("[GRAPH_POOL:{}] <-", lck_id);
         }
 
         // Remove all FSTs on-disk

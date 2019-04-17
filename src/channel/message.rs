@@ -48,10 +48,12 @@ impl ChannelMessage {
         // DEBUG
         let cmd_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
 
-        if message.len() < 100 {
-            error!("[CMD:{}] -> {}", cmd_id, message);
-        } else {
-            error!("[CMD:{}] -> {} ++", cmd_id, &message[..100]);
+        if message.trim().is_empty() == false {
+            if message.len() < 100 {
+                error!("[CMD:{}] -> {}", cmd_id, message);
+            } else {
+                error!("[CMD:{}] -> {} ++", cmd_id, &message[..100]);
+            }
         }
 
         let command_start = Instant::now();
@@ -141,7 +143,9 @@ impl ChannelMessage {
         }
 
         // DEBUG
-        error!("[CMD:{}] <-", cmd_id);
+        if message.trim().is_empty() == false {
+            error!("[CMD:{}] <-", cmd_id);
+        }
 
         result
     }
