@@ -4,6 +4,8 @@
 // Copyright: 2019, Valerian Saliou <valerian@valeriansaliou.name>
 // License: Mozilla Public License v2.0 (MPL v2.0)
 
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use std::io::Write;
 use std::net::TcpStream;
 use std::str::{self, SplitWhitespace};
@@ -42,6 +44,15 @@ impl ChannelMessage {
         let message = str::from_utf8(message_slice).unwrap_or("");
 
         debug!("got channel message: {}", message);
+
+        // DEBUG
+        let cmd_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+
+        if message.len() < 100 {
+            error!("[CMD:{}] -> {}", cmd_id, message);
+        } else {
+            error!("[CMD:{}] -> {} ++", cmd_id, &message[..100]);
+        }
 
         let command_start = Instant::now();
 
@@ -128,6 +139,9 @@ impl ChannelMessage {
             // Increment total commands
             *COMMANDS_TOTAL.write().unwrap() += 1;
         }
+
+        // DEBUG
+        error!("[CMD:{}] <-", cmd_id);
 
         result
     }
