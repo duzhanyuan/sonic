@@ -11,6 +11,8 @@ use fst::{
 };
 use fst_levenshtein::Levenshtein;
 use fst_regex::Regex;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use hashbrown::{HashMap, HashSet};
 use radix::RadixNum;
 use regex_syntax::escape as regex_escape;
@@ -111,7 +113,10 @@ impl StoreFSTPool {
 
         // Freeze acquire lock, and reference it in context
         // Notice: this prevents two graphs on the same collection to be opened at the same time.
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[GRAPH_ACQUIRE_LOCK:{}] ->", lck_id);
         let _acquire = GRAPH_ACQUIRE_LOCK.lock().unwrap();
+        error!("[GRAPH_ACQUIRE_LOCK:{}] <-", lck_id);
 
         // Acquire a thread-safe store pool reference in read mode
         let graph_pool_read = GRAPH_POOL.read().unwrap();
@@ -180,7 +185,10 @@ impl StoreFSTPool {
 
         // Acquire rebuild lock, and reference it in context
         // Notice: this prevents two consolidate operations to be executed at the same time.
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[GRAPH_REBUILD_LOCK:{}] ->", lck_id);
         let _rebuild = GRAPH_REBUILD_LOCK.lock().unwrap();
+        error!("[GRAPH_REBUILD_LOCK:{}] <-", lck_id);
 
         // Exit trap: Register is empty? Abort there.
         if GRAPH_CONSOLIDATE.read().unwrap().is_empty() {

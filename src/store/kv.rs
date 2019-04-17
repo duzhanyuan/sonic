@@ -6,6 +6,8 @@
 
 use byteorder::{ByteOrder, LittleEndian, ReadBytesExt};
 use hashbrown::HashMap;
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 use radix::RadixNum;
 use rocksdb::backup::{
     BackupEngine as DBBackupEngine, BackupEngineOptions as DBBackupEngineOptions,
@@ -84,7 +86,10 @@ impl StoreKVPool {
 
         // Freeze acquire lock, and reference it in context
         // Notice: this prevents two databases on the same collection to be opened at the same time.
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[STORE_ACQUIRE_LOCK:{}] ->", lck_id);
         let _acquire = STORE_ACQUIRE_LOCK.lock().unwrap();
+        error!("[STORE_ACQUIRE_LOCK:{}] <-", lck_id);
 
         // Acquire a thread-safe store pool reference in read mode
         let store_pool_read = STORE_POOL.read().unwrap();
