@@ -381,27 +381,15 @@ impl StoreGenericBuilder<StoreKVKey, StoreKV> for StoreKVBuilder {
 
 impl StoreKV {
     pub fn get(&self, key: &[u8]) -> Result<Option<DBVector>, DBError> {
-        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
-        error!("[kv_database_get:{}] ->", lck_id);
-        let ret = self.database.get(key);
-        error!("[kv_database_get:{}] <-", lck_id);
-        ret
+        self.database.get(key)
     }
 
     pub fn put(&self, key: &[u8], data: &[u8]) -> Result<(), DBError> {
-        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
-        error!("[kv_database_put:{}] ->", lck_id);
-        let ret = self.database.put(key, data);
-        error!("[kv_database_put:{}] <-", lck_id);
-        ret
+        self.database.put(key, data)
     }
 
     pub fn delete(&self, key: &[u8]) -> Result<(), DBError> {
-        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
-        error!("[kv_database_delete:{}] ->", lck_id);
-        let ret = self.database.delete(key);
-        error!("[kv_database_delete:{}] <-", lck_id);
-        ret
+        self.database.delete(key)
     }
 }
 
