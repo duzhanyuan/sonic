@@ -892,7 +892,7 @@ impl StoreFSTActionBuilder {
     }
 
     pub fn erase<'a, T: Into<&'a str>>(collection: T, bucket: Option<T>) -> Result<u32, ()> {
-        Self::dispatch_erase("fst", collection, bucket, &*GRAPH_ACCESS_LOCK)
+        Self::dispatch_erase("fst", collection, bucket)
     }
 
     fn build(store: StoreFSTBox) -> StoreFSTAction {

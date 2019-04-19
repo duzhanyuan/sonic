@@ -150,6 +150,13 @@ impl ExecutorPush {
                         }
                     }
 
+                    // TODO: wait for debug
+                    error!("dbg: entering sleep state");
+                    use std::thread;
+                    use std::time::Duration;
+                    thread::sleep(Duration::from_secs(10));
+                    error!("dbg: leaving sleep state");
+
                     // Commit updated list of terms for IID? (if any commit made)
                     if has_commits {
                         let collected_iids: Vec<StoreTermHashed> =

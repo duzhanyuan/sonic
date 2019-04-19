@@ -53,3 +53,12 @@ macro_rules! general_fst_access_lock_read {
         let _fst_access = GRAPH_ACCESS_LOCK.read().unwrap();
     };
 }
+
+#[macro_export]
+macro_rules! general_fst_access_lock_write {
+    () => {
+        use crate::store::fst::GRAPH_ACCESS_LOCK;
+
+        let _fst_access = GRAPH_ACCESS_LOCK.write().unwrap();
+    };
+}

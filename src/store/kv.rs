@@ -405,7 +405,7 @@ impl StoreKVActionBuilder {
     }
 
     pub fn erase<'a, T: Into<&'a str>>(collection: T, bucket: Option<T>) -> Result<u32, ()> {
-        Self::dispatch_erase("kv", collection, bucket, &*STORE_ACCESS_LOCK)
+        Self::dispatch_erase("kv", collection, bucket)
     }
 
     fn build(bucket: StoreItemPart, store: Option<StoreKVBox>) -> StoreKVAction {
@@ -978,6 +978,12 @@ impl<'a> StoreKVAction<'a> {
                             self.bucket.as_str()
                         );
                     }
+
+                    error!("dbg: entering bucket delete");
+                    use std::thread;
+                    use std::time::Duration;
+                    thread::sleep(Duration::from_secs(2));
+                    error!("dbg: leaving bucket delete");
                 } else {
                     error!(
                         "error stacking range delete in store batch erase bucket: {}",

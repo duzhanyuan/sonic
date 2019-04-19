@@ -49,10 +49,10 @@ impl Tasker {
         // Proceed all tick actions
 
         // #1: Janitors
-        StoreKVPool::janitor();
-        StoreFSTPool::janitor();
+        // StoreKVPool::janitor();
+        // StoreFSTPool::janitor();
 
         // #2: Others
-        StoreFSTPool::consolidate(false);
+        // StoreFSTPool::consolidate(false);
     }
 }

@@ -153,7 +153,6 @@ pub trait StoreGenericActionBuilder {
         kind: &str,
         collection: T,
         bucket: Option<T>,
-        access_lock: &Arc<RwLock<bool>>,
     ) -> Result<u32, ()> {
         let collection_str = collection.into();
 
@@ -163,7 +162,7 @@ pub trait StoreGenericActionBuilder {
         // Notice: this prevents store to be acquired from any context
         let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
         error!("[{}_erase_access_lock:{}] ->", kind, lck_id);
-        let _access = access_lock.write().unwrap();
+        // let _access = access_lock.write().unwrap();
 
         let ret = if let Some(bucket) = bucket {
             Self::proceed_erase_bucket(collection_str, bucket.into())
