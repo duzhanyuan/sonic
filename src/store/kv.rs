@@ -381,15 +381,27 @@ impl StoreGenericBuilder<StoreKVKey, StoreKV> for StoreKVBuilder {
 
 impl StoreKV {
     pub fn get(&self, key: &[u8]) -> Result<Option<DBVector>, DBError> {
-        self.database.get(key)
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[kv_database_get:{}] ->", lck_id);
+        let ret = self.database.get(key);
+        error!("[kv_database_get:{}] <-", lck_id);
+        ret
     }
 
     pub fn put(&self, key: &[u8], data: &[u8]) -> Result<(), DBError> {
-        self.database.put(key, data)
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[kv_database_put:{}] ->", lck_id);
+        let ret = self.database.put(key, data);
+        error!("[kv_database_put:{}] <-", lck_id);
+        ret
     }
 
     pub fn delete(&self, key: &[u8]) -> Result<(), DBError> {
-        self.database.delete(key)
+        let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+        error!("[kv_database_delete:{}] ->", lck_id);
+        let ret = self.database.delete(key);
+        error!("[kv_database_delete:{}] <-", lck_id);
+        ret
     }
 }
 
@@ -955,17 +967,23 @@ impl<'a> StoreKVAction<'a> {
                     .is_ok()
                 {
                     // Commit operation to database
+                    let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+                    error!("[kv_database_write_batch:{}] ->", lck_id);
                     if let Err(err) = store.database.write(batch) {
+                        error!("[kv_database_write_batch:{}] <-", lck_id);
                         error!(
                             "failed in store batch erase bucket: {} with error: {}",
                             self.bucket.as_str(),
                             err
                         );
                     } else {
+                        error!("[kv_database_write_batch:{}] <-", lck_id);
                         // Ensure last key is deleted (as RocksDB end key is exclusive; while \
                         //   start key is inclusive, we need to ensure the end-of-range key is \
                         //   deleted)
+                        error!("[kv_database_delete_end:{}] ->", lck_id);
                         store.database.delete(&key_prefix_end).ok();
+                        error!("[kv_database_delete_end:{}] <-", lck_id);
 
                         debug!(
                             "succeeded in store batch erase bucket: {}",

@@ -7,6 +7,9 @@
 use linked_hash_set::LinkedHashSet;
 use std::iter::FromIterator;
 
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
 use crate::lexer::token::TokenLexer;
 use crate::query::types::{QuerySearchID, QuerySearchLimit, QuerySearchOffset};
 use crate::store::fst::{StoreFSTActionBuilder, StoreFSTPool};
@@ -36,6 +39,8 @@ impl ExecutorSearch {
                 StoreFSTPool::acquire(collection, bucket),
             ) {
                 // Important: acquire bucket store read lock
+                let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+                error!("[search_{}_executor_kv_lock_read:{}] ->", collection.as_str(), lck_id);
                 executor_kv_lock_read!(kv_store);
 
                 let (kv_action, fst_action) = (
@@ -177,6 +182,7 @@ impl ExecutorSearch {
 
                 info!("got search executor final oids: {:?}", result_oids);
 
+                error!("[search_{}_executor_kv_lock_read:{}] <-", collection.as_str(), lck_id);
                 return Ok(if !result_oids.is_empty() {
                     Some(result_oids)
                 } else {

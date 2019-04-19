@@ -90,7 +90,7 @@ pub trait StoreGenericPool<
         // Acquire access lock (in blocking write mode), and reference it in context
         // Notice: this prevents store to be acquired from any context
         let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
-        error!("[access_lock:{}] ->", lck_id);
+        error!("[{}_janitor_access_lock:{}] ->", kind, lck_id);
         let _access = access_lock.write().unwrap();
 
         let mut removal_register: Vec<K> = Vec::new();
@@ -136,7 +136,7 @@ pub trait StoreGenericPool<
             pool.read().unwrap().len()
         );
 
-        error!("[access_lock:{}] <-", lck_id);
+        error!("[{}_janitor_access_lock:{}] <-", kind, lck_id);
     }
 }
 
@@ -162,7 +162,7 @@ pub trait StoreGenericActionBuilder {
         // Acquire access lock (in blocking write mode), and reference it in context
         // Notice: this prevents store to be acquired from any context
         let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
-        error!("[access_lock:{}] ->", lck_id);
+        error!("[{}_erase_access_lock:{}] ->", kind, lck_id);
         let _access = access_lock.write().unwrap();
 
         let ret = if let Some(bucket) = bucket {
@@ -171,7 +171,7 @@ pub trait StoreGenericActionBuilder {
             Self::proceed_erase_collection(collection_str)
         };
 
-        error!("[access_lock:{}] <-", lck_id);
+        error!("[{}_erase_access_lock:{}] <-", kind, lck_id);
 
         ret
     }

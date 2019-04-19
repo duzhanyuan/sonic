@@ -10,6 +10,9 @@ use crate::store::item::StoreItem;
 use crate::store::kv::StoreKVActionBuilder;
 use crate::store::kv::{StoreKVAcquireMode, StoreKVPool};
 
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
 pub struct ExecutorCount;
 
 impl ExecutorCount {
@@ -24,6 +27,8 @@ impl ExecutorCount {
                 if let Ok(kv_store) = StoreKVPool::acquire(StoreKVAcquireMode::OpenOnly, collection)
                 {
                     // Important: acquire bucket store read lock
+                    let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+                    error!("[count_{}_executor_kv_lock_read:{}] ->", collection.as_str(), lck_id);
                     executor_kv_lock_read!(kv_store);
 
                     let kv_action = StoreKVActionBuilder::access(bucket, kv_store);
@@ -31,7 +36,7 @@ impl ExecutorCount {
                     // Try to resolve existing OID to IID
                     let oid = object.as_str();
 
-                    kv_action
+                    let ret = kv_action
                         .get_oid_to_iid(oid)
                         .unwrap_or(None)
                         .map(|iid| {
@@ -43,7 +48,11 @@ impl ExecutorCount {
                             }
                         })
                         .ok_or(())
-                        .or(Ok(0))
+                        .or(Ok(0));
+
+                    error!("[count_{}_executor_kv_lock_read:{}] <-", collection.as_str(), lck_id);
+
+                    ret
                 } else {
                     Err(())
                 }

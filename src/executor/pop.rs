@@ -7,6 +7,9 @@
 use linked_hash_set::LinkedHashSet;
 use std::iter::FromIterator;
 
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
 use crate::lexer::token::TokenLexer;
 use crate::store::fst::{StoreFSTActionBuilder, StoreFSTPool};
 use crate::store::identifiers::StoreTermHashed;
@@ -28,6 +31,8 @@ impl ExecutorPop {
                 StoreFSTPool::acquire(collection, bucket),
             ) {
                 // Important: acquire bucket store write lock
+                let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+                error!("[pop_{}_executor_kv_lock_write:{}] ->", collection.as_str(), lck_id);
                 executor_kv_lock_write!(kv_store);
 
                 let (kv_action, fst_action) = (
@@ -138,8 +143,10 @@ impl ExecutorPop {
                         }
                     }
 
+                    error!("[pop_{}_executor_kv_lock_write:{}] <-", collection.as_str(), lck_id);
                     return Ok(count_popped);
                 }
+                error!("[pop_{}_executor_kv_lock_write:{}] <-", collection.as_str(), lck_id);
             }
         }
 

@@ -8,6 +8,9 @@ use crate::store::fst::StoreFSTActionBuilder;
 use crate::store::item::StoreItem;
 use crate::store::kv::{StoreKVAcquireMode, StoreKVActionBuilder, StoreKVPool};
 
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
 pub struct ExecutorFlushB;
 
 impl ExecutorFlushB {
@@ -19,6 +22,8 @@ impl ExecutorFlushB {
 
             if let Ok(kv_store) = StoreKVPool::acquire(StoreKVAcquireMode::OpenOnly, collection) {
                 // Important: acquire bucket store write lock
+                let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+                error!("[flushb_{}_executor_kv_lock_write:{}] ->", collection.as_str(), lck_id);
                 executor_kv_lock_write!(kv_store);
 
                 if kv_store.is_some() {
@@ -38,6 +43,7 @@ impl ExecutorFlushB {
                         if StoreFSTActionBuilder::erase(collection, Some(bucket)).is_ok() {
                             debug!("done with bucket erasure");
 
+                            error!("[flushb_{}_executor_kv_lock_write:{}] <-", collection.as_str(), lck_id);
                             return Ok(erase_count);
                         }
                     }
@@ -49,8 +55,11 @@ impl ExecutorFlushB {
                         collection.as_str()
                     );
 
+                    error!("[flushb_{}_executor_kv_lock_write:{}] <-", collection.as_str(), lck_id);
                     return Ok(0);
                 }
+
+                error!("[flushb_{}_executor_kv_lock_write:{}] <-", collection.as_str(), lck_id);
             }
         }
 

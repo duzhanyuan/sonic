@@ -7,6 +7,9 @@
 use crate::store::item::StoreItem;
 use crate::store::kv::{StoreKVAcquireMode, StoreKVActionBuilder, StoreKVPool};
 
+use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
+
 pub struct ExecutorFlushO;
 
 impl ExecutorFlushO {
@@ -18,6 +21,8 @@ impl ExecutorFlushO {
 
             if let Ok(kv_store) = StoreKVPool::acquire(StoreKVAcquireMode::OpenOnly, collection) {
                 // Important: acquire bucket store write lock
+                let lck_id: String = thread_rng().sample_iter(&Alphanumeric).take(8).collect();
+                error!("[flusho_{}_executor_kv_lock_write:{}] ->", collection.as_str(), lck_id);
                 executor_kv_lock_write!(kv_store);
 
                 let kv_action = StoreKVActionBuilder::access(bucket, kv_store);
@@ -50,10 +55,12 @@ impl ExecutorFlushO {
                         }
                     }
 
+                    error!("[flusho_{}_executor_kv_lock_write:{}] <-", collection.as_str(), lck_id);
                     return Ok(count_flushed);
                 } else {
                     error!("failed getting flusho executor oid-to-iid");
                 }
+                error!("[flusho_{}_executor_kv_lock_write:{}] <-", collection.as_str(), lck_id);
             }
         }
 
